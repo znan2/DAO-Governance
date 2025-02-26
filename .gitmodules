@@ -7,3 +7,6 @@
 [submodule "dao/lib/openzeppelin-contracts"]
 	path = dao/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "dao/lib/token-tests"]
+	path = dao/lib/token-tests
+	url = https://github.com/makerdao/token-tests
