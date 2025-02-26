@@ -5,6 +5,9 @@ pragma solidity ^0.8.0;
 import "node_modules/@openzeppelin/contracts/access/Ownable.sol";
 
 contract DaoGovernance is Ownable {
+    constructor() Ownable(msg.sender) {
+        // 추가 초기화 로직이 필요하면 여기에 작성
+    }
     // 제안 유형: 온체인 폴과 이그제큐티브 제안 구분
     enum ProposalType { OnChainPoll, ExecutiveProposal }
     // 투표 주기: Monthly와 Weekly
