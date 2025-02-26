@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 // OpenZeppelin의 Ownable 컨트랙트를 사용해 관리자 기능 제공
-import "node_modules/@openzeppelin/contracts/access/Ownable.sol";
+import "openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract DaoGovernance is Ownable {
     constructor() Ownable(msg.sender) {
