@@ -84,14 +84,7 @@ contract DaoGovernance is Ownable {
      * @param _description 제안 내용
      * @param _submission Ratification Poll 진행 여부
      */
-    function createProposal(
-        string memory _description,
-        bool _submission
-    )
-        public
-        onlyOwner
-        returns (uint256)
-    {
+    function createProposal(string memory _description,bool _submission) public onlyOwner returns (uint256) {
         proposalCount++;
         uint256 newId = proposalCount;
 
@@ -151,6 +144,10 @@ contract DaoGovernance is Ownable {
             p.abstainVotes++;
             emit VoteCast(_proposalId, msg.sender, "abstain");
         }
+    }
+
+    function getProposal(uint256 _proposalId) external view returns (Proposal memory) {
+        return proposals[_proposalId];
     }
 
     /**
