@@ -167,4 +167,12 @@ contract DaoGovernanceV2 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeabl
         p.noVotes = 0;
         p.abstainVotes = 0;
     }
+
+    function getVotingDuration() public view returns (uint256) {
+        return votingDuration;
+    }
+
+    function version() public pure returns (string memory) {
+        return "V2";
+    }
 }
