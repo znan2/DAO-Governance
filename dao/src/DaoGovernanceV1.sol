@@ -2,12 +2,11 @@
 pragma solidity ^0.8.0;
 
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
-
+import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 contract DaoGovernance is Ownable {
-    // 모든 투표 기간을 3일로 설정
+    IERC20 public token;
     uint256 public constant VOTING_DURATION = 3 days;
-
     enum ProposalStatus {
         Pending,       // 제안 생성 후, 아직 Submission 안 됨
         Submission,    // Submission = true 일 때 -> Ratification Poll 시작
@@ -53,8 +52,8 @@ contract DaoGovernance is Ownable {
     event ProposalFinalized(uint256 indexed proposalId, PollResult result);
     event VotingExtended(uint256 indexed proposalId, uint256 newEndTime);
 
-    constructor() Ownable(msg.sender) {
-        // 초기화 로직
+    constructor(IERC20 _token) Ownable(msg.sender) {
+        token = _token;
     }
 
     function createProposal(string memory _description,bool _submission) public onlyOwner returns (uint256) {
@@ -68,7 +67,7 @@ contract DaoGovernance is Ownable {
         p.result = PollResult.NotEnded;
 
         if (_submission) {
-            // submission = true -> 곧바로 투표 시작
+            // submission = true -> 투표 시작
             p.status = ProposalStatus.Submission;
             p.startTime = block.timestamp;
             p.endTime = block.timestamp + VOTING_DURATION;
@@ -96,16 +95,19 @@ contract DaoGovernance is Ownable {
         require(!hasVoted[_proposalId][msg.sender], "Already voted");
         require(_option <= 2, "Invalid option");
 
+        uint256 votingPower = token.balanceOf(msg.sender);
+        require(votingPower > 0, "No voting power");
+
         hasVoted[_proposalId][msg.sender] = true;
 
         if (_option == 0) {
-            p.yesVotes++;
+            p.yesVotes += votingPower;
             emit VoteCast(_proposalId, msg.sender, "yes");
         } else if (_option == 1) {
-            p.noVotes++;
+            p.noVotes += votingPower;
             emit VoteCast(_proposalId, msg.sender, "no");
         } else {
-            p.abstainVotes++;
+            p.abstainVotes += votingPower;
             emit VoteCast(_proposalId, msg.sender, "abstain");
         }
     }
@@ -124,7 +126,7 @@ contract DaoGovernance is Ownable {
         } else if (p.noVotes > p.yesVotes && p.noVotes > p.abstainVotes) {
             p.result = PollResult.Rejected;
         } else {
-            // 기권이 제일 많을 때나 동표가 나왔을 때
+            // 기권이 제일 많거나 동표가 나왔을 때
             p.result = PollResult.Extended;
             emit VotingExtended(_proposalId, p.endTime + VOTING_DURATION);
         }
@@ -138,7 +140,7 @@ contract DaoGovernance is Ownable {
         require(p.status == ProposalStatus.Completed, "Not completed yet");
         require(p.result == PollResult.Extended, "Proposal not extended");
 
-        // 재투표 시작하면 시간 연장하고 표는 초기화
+        // 재투표 시작하면 시간 연장, 표는 초기화
         p.status = ProposalStatus.Submission;
         p.startTime = block.timestamp;
         p.endTime = block.timestamp + VOTING_DURATION;
