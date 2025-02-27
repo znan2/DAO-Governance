@@ -2,17 +2,21 @@
 pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
-import "../src/DaoGovernance.sol";
+import "../src/DaoGovernanceV1.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
-
+import "../src/WAYToken.sol";
 contract DaoGovernanceTest is Test {
-    DaoGovernance dao;
+    DaoGovernanceV1 dao;
     address owner = address(1);
     address alice = address(2);
     address bob   = address(3);
     function setUp() public {
+        WAYToken dummyToken = new WAYToken();
         vm.prank(owner); 
-        dao = new DaoGovernance();
+        dao = new DaoGovernanceV1();
+
+        vm.prank(owner);
+        dao.initialize(ERC20Upgradeable(address(dummyToken)),3 days);
     }
 
     function testCreateProposalSubmissionTrue() public {
@@ -24,9 +28,9 @@ contract DaoGovernanceTest is Test {
     function testCreateProposalSubmissionFalse() public {
         vm.prank(owner);
         uint256 proposalId = dao.createProposal("Pending Proposal", false);
-        DaoGovernance.Proposal memory p = dao.getProposal(proposalId);
+        DaoGovernanceV1.Proposal memory p = dao.getProposal(proposalId);
         assertEq(proposalId, dao.proposalCount());
-        assertEq(uint(p.status), uint(DaoGovernance.ProposalStatus.Pending));
+        assertEq(uint(p.status), uint(DaoGovernanceV1.ProposalStatus.Pending));
     }
 
     function testCreateProposalByAlcie() public {
@@ -40,7 +44,7 @@ contract DaoGovernanceTest is Test {
         uint256 proposalId = dao.createProposal("Vote Test", true);
         vm.prank(alice);
         dao.vote(proposalId, 0);
-        DaoGovernance.Proposal memory p = dao.getProposal(proposalId);
+        DaoGovernanceV1.Proposal memory p = dao.getProposal(proposalId);
         assertEq(p.yesVotes, 1);
         assertEq(p.noVotes, 0);
         assertEq(p.abstainVotes, 0);
@@ -54,7 +58,7 @@ contract DaoGovernanceTest is Test {
     function testVoteOutsideVotingPeriod() public {
         vm.prank(owner);
         uint256 proposalId = dao.createProposal("Time Test", true);
-        DaoGovernance.Proposal memory p = dao.getProposal(proposalId);
+        DaoGovernanceV1.Proposal memory p = dao.getProposal(proposalId);
         vm.warp(p.startTime - 1);
         vm.prank(bob);
         vm.expectRevert("Voting not started");
