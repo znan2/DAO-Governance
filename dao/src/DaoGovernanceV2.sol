@@ -54,7 +54,7 @@ contract DaoGovernanceV2 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeabl
     event ProposalFinalized(uint256 indexed proposalId, PollResult result);
     event VotingExtended(uint256 indexed proposalId, uint256 newEndTime);
 
-    function initializeV2(ERC20Upgradeable _token, uint256 _duration) public initializer {
+    function initializeV2(ERC20Upgradeable _token, uint256 _duration) public reinitializer(2) {
         __Ownable_init(msg.sender);
         __UUPSUpgradeable_init();
         __ERC20_init("WAYToken", "WAY");
