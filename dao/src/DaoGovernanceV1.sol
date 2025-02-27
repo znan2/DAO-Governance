@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
 import "openzeppelin-contracts-upgradeable/contracts/token/ERC20/ERC20Upgradeable.sol";
 import "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+
 contract DaoGovernanceV1 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
     ERC20Upgradeable public token;
     uint256 public votingDuration = 3 days;
@@ -63,7 +64,7 @@ contract DaoGovernanceV1 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeabl
         upgradeApproved = false;
     }
 
-    function createProposal(string memory _description,bool _submission) public onlyOwner returns (uint256) {
+    function createProposal(string memory _description, bool _submission) public onlyOwner returns (uint256) {
         proposalCount++;
         uint256 newId = proposalCount;
 
@@ -82,13 +83,7 @@ contract DaoGovernanceV1 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeabl
             // submission = false -> 투표 진행 X (Pending 상태 유지)
             p.status = ProposalStatus.Pending;
         }
-        emit ProposalCreated(
-            newId,
-            _description,
-            _submission,
-            p.startTime,
-            p.endTime
-        );
+        emit ProposalCreated(newId, _description, _submission, p.startTime, p.endTime);
         return newId;
     }
 
@@ -97,16 +92,15 @@ contract DaoGovernanceV1 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeabl
         upgradeApproved = true;
     }
 
-    function upgradeImplementation(address newImplementation) external onlyOwner {
-        require(upgradeApproved, "Upgrade not approved");
-        upgradeToAndCall(newImplementation, bytes(""));
-    }
-
     function _authorizeUpgrade(address newImplementation) internal override {
         require(owner() == msg.sender, "Not owner");
         require(upgradeApproved, "Upgrade not approved by vote");
     }
 
+    function upgradeImplementation(address newImplementation, bytes memory data) external onlyOwner {
+        require(upgradeApproved, "Upgrade not approved");
+        upgradeToAndCall(newImplementation, data);
+    }
 
     function vote(uint256 _proposalId, uint8 _option) external {
         Proposal storage p = proposals[_proposalId];
@@ -149,7 +143,6 @@ contract DaoGovernanceV1 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeabl
         } else if (p.noVotes > p.yesVotes && p.noVotes > p.abstainVotes) {
             p.result = PollResult.Rejected;
         } else {
-            // 기권이 제일 많거나 동표가 나왔을 때
             p.result = PollResult.Extended;
             emit VotingExtended(_proposalId, p.endTime + votingDuration);
         }
@@ -163,7 +156,6 @@ contract DaoGovernanceV1 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeabl
         require(p.status == ProposalStatus.Completed, "Not completed yet");
         require(p.result == PollResult.Extended, "Proposal not extended");
 
-        // 재투표 시작하면 시간 연장, 표는 초기화
         p.status = ProposalStatus.Submission;
         p.startTime = block.timestamp;
         p.endTime = block.timestamp + votingDuration;
@@ -172,4 +164,6 @@ contract DaoGovernanceV1 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeabl
         p.noVotes = 0;
         p.abstainVotes = 0;
     }
+
+    uint256[50] private __gap;
 }
