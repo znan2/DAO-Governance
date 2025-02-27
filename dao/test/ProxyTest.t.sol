@@ -64,7 +64,7 @@ contract ProxyTest is Test {
         daoV2 = new DaoGovernanceV2();
         // V2는 reinitializer(2) 함수로 초기화
         vm.prank(owner);
-        daoV2.initializeV2(ERC20Upgradeable(address(way)));
+        daoV2.initializeV2(ERC20Upgradeable(address(way)), 5 days);
 
         // 4. proxy를 통해 V1의 upgradeImplementation() 함수 호출하여 업그레이드 실행
         vm.prank(owner);
