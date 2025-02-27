@@ -16,32 +16,19 @@ contract ProxyTest is Test {
     address alice = address(2);
 
     function setUp() public {
-        // 1. owner로 WAYToken 배포 (초기 mint는 owner에게 할당)
         vm.prank(owner);
         way = new WAYToken();
-
-        // 2. owner로 DaoGovernanceV1 배포
         vm.prank(owner);
         daoV1 = new DaoGovernanceV1();
-
-        // 3. 초기화 데이터 생성: DaoGovernanceV1.initialize(token, 3 days)
-        bytes memory initData = abi.encodeWithSignature(
-            "initialize(address,uint256)",
-            ERC20Upgradeable(address(way)),
-            3 days
-        );
-
-        // 4. UUPSProxy 배포, 초기 구현은 daoV1
+        bytes memory initData = abi.encodeWithSignature("initialize(address,uint256)", ERC20Upgradeable(address(way)), 3 days);
         vm.prank(owner);
         proxy = new DaoProxy(address(daoV1), initData);
-
-        // 5. owner가 alice에게 토큰 전송하여 voting power 확보
+        //voting power
         vm.prank(owner);
         way.transfer(alice, 1);
     }
 
-    function testProxyCallsV1() public {
-        // proxy를 DaoGovernanceV1 인터페이스로 캐스팅하여 V1 함수 호출
+    function testProxyCallsV1Proposal() public {
         DaoGovernanceV1 proxyV1 = DaoGovernanceV1(address(proxy));
         vm.prank(owner);
         uint256 proposalId = proxyV1.createProposal("Test Proposal V1", true);
@@ -49,30 +36,27 @@ contract ProxyTest is Test {
     }
 
     function testUpgradeFromV1ToV2() public {
-        // 1. proxy를 DaoGovernanceV1 인터페이스로 캐스팅하여 V1 기능 테스트
         DaoGovernanceV1 proxyV1 = DaoGovernanceV1(address(proxy));
         vm.prank(owner);
         uint256 proposalId = proxyV1.createProposal("Upgrade Proposal", true);
 
-        // 2. 투표 결과로 업그레이드 승인 (approveUpgrade)
+        // 업그레이드 승인
         vm.prank(owner);
         proxyV1.approveUpgrade();
-        // upgradeApproved == true
 
-        // 3. owner로 DaoGovernanceV2 Implementation 배포
+        // DaoGovernanceV2 배포
         vm.prank(owner);
         daoV2 = new DaoGovernanceV2();
+
         // V2는 reinitializer(2) 함수로 초기화
         vm.prank(owner);
         daoV2.initializeV2(ERC20Upgradeable(address(way)), 5 days);
 
-        // 4. proxy를 통해 V1의 upgradeImplementation() 함수 호출하여 업그레이드 실행
+        // upgradeImplementation() 함수 호출
         vm.prank(owner);
-        proxyV1.upgradeImplementation(address(daoV2));
+        proxyV1.upgradeImplementation(address(daoV2), abi.encodeWithSignature("initializeV2(address,uint256)", ERC20Upgradeable(address(way)), 5 days));
 
-        // 5. 이제 proxy는 V2 Implementation을 바라봄
         DaoGovernanceV2 proxyV2 = DaoGovernanceV2(address(proxy));
-        // V2는 getVotingDuration() 함수와 version() 함수를 제공함
         assertEq(proxyV2.getVotingDuration(), 5 days);
         assertEq(proxyV2.version(), "V2");
     }
