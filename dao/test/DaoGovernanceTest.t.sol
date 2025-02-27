@@ -10,13 +10,16 @@ contract DaoGovernanceTest is Test {
     address owner = address(1);
     address alice = address(2);
     address bob   = address(3);
+    WAYToken way;
     function setUp() public {
-        WAYToken dummyToken = new WAYToken();
         vm.prank(owner); 
-        dao = new DaoGovernanceV1();
-
+        way = new WAYToken();
         vm.prank(owner);
-        dao.initialize(ERC20Upgradeable(address(dummyToken)),3 days);
+        dao = new DaoGovernanceV1();
+        vm.prank(owner);
+        dao.initialize(ERC20Upgradeable(address(way)),3 days);
+        vm.prank(owner);
+        way.transfer(alice, 1);
     }
 
     function testCreateProposalSubmissionTrue() public {

@@ -97,6 +97,11 @@ contract DaoGovernanceV1 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeabl
         upgradeApproved = true;
     }
 
+    function upgradeImplementation(address newImplementation) external onlyOwner {
+        require(upgradeApproved, "Upgrade not approved");
+        _upgradeTo(newImplementation);
+    }
+
     function _authorizeUpgrade(address newImplementation) internal override {
         require(owner() == msg.sender, "Not owner");
         require(upgradeApproved, "Upgrade not approved by vote");

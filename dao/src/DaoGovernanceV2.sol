@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "openzeppelin-contracts/contracts/access/Ownable.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
+import "openzeppelin-contracts-upgradeable/contracts/token/ERC20/ERC20Upgradeable.sol";
+import "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+contract DaoGovernanceV2 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
+    ERC20Upgradeable public token;
+    uint256 public votingDuration = 5 days;
+    bool public upgradeApproved;
 
-contract DaoGovernanceV2 is Ownable {
-    IERC20 public token;
-    uint256 public constant VOTING_DURATION = 5 days;
     enum ProposalStatus {
         Pending,       // 제안 생성 후, 아직 Submission 안 됨
         Submission,    // Submission = true 일 때 -> Ratification Poll 시작
@@ -52,8 +54,13 @@ contract DaoGovernanceV2 is Ownable {
     event ProposalFinalized(uint256 indexed proposalId, PollResult result);
     event VotingExtended(uint256 indexed proposalId, uint256 newEndTime);
 
-    constructor(IERC20 _token) Ownable(msg.sender) {
+    function initializeV2(ERC20Upgradeable _token, uint256 _duration) public initializer {
+        __Ownable_init(msg.sender);
+        __UUPSUpgradeable_init();
+        __ERC20_init("WAYToken", "WAY");
         token = _token;
+        votingDuration = _duration; // 예: 3 days
+        upgradeApproved = false;
     }
 
     function createProposal(string memory _description,bool _submission) public onlyOwner returns (uint256) {
@@ -70,7 +77,7 @@ contract DaoGovernanceV2 is Ownable {
             // submission = true -> 투표 시작
             p.status = ProposalStatus.Submission;
             p.startTime = block.timestamp;
-            p.endTime = block.timestamp + VOTING_DURATION;
+            p.endTime = block.timestamp + votingDuration;
         } else {
             // submission = false -> 투표 진행 X (Pending 상태 유지)
             p.status = ProposalStatus.Pending;
@@ -84,6 +91,17 @@ contract DaoGovernanceV2 is Ownable {
         );
         return newId;
     }
+
+    function approveUpgrade() external onlyOwner {
+        // 예: 투표 결과가 찬성 과반이라면 true 
+        upgradeApproved = true;
+    }
+
+    function _authorizeUpgrade(address newImplementation) internal override {
+        require(owner() == msg.sender, "Not owner");
+        require(upgradeApproved, "Upgrade not approved by vote");
+    }
+
 
     function vote(uint256 _proposalId, uint8 _option) external {
         Proposal storage p = proposals[_proposalId];
@@ -128,7 +146,7 @@ contract DaoGovernanceV2 is Ownable {
         } else {
             // 기권이 제일 많거나 동표가 나왔을 때
             p.result = PollResult.Extended;
-            emit VotingExtended(_proposalId, p.endTime + VOTING_DURATION);
+            emit VotingExtended(_proposalId, p.endTime + votingDuration);
         }
 
         p.status = ProposalStatus.Completed;
@@ -143,7 +161,7 @@ contract DaoGovernanceV2 is Ownable {
         // 재투표 시작하면 시간 연장, 표는 초기화
         p.status = ProposalStatus.Submission;
         p.startTime = block.timestamp;
-        p.endTime = block.timestamp + VOTING_DURATION;
+        p.endTime = block.timestamp + votingDuration;
         p.result = PollResult.NotEnded;
         p.yesVotes = 0;
         p.noVotes = 0;
