@@ -6,7 +6,7 @@ import "openzeppelin-contracts-upgradeable/contracts/token/ERC20/ERC20Upgradeabl
 import "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 contract DaoGovernanceV2 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
     ERC20Upgradeable public token;
-    uint256 public votingDuration = 5 days;
+    uint256 public constant VOTING_DURATION = 3 days;
     bool public upgradeApproved;
 
     enum ProposalStatus {
@@ -54,12 +54,12 @@ contract DaoGovernanceV2 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeabl
     event ProposalFinalized(uint256 indexed proposalId, PollResult result);
     event VotingExtended(uint256 indexed proposalId, uint256 newEndTime);
 
-    function initializeV2(ERC20Upgradeable _token, uint256 _duration) public reinitializer(2) {
+    function initializeV2(ERC20Upgradeable _token) public reinitializer(2) {
         __Ownable_init(msg.sender);
         __UUPSUpgradeable_init();
         __ERC20_init("WAYToken", "WAY");
         token = _token;
-        votingDuration = _duration; // 예: 3 days
+        votingDuration = VOTING_DURATION; // 예: 3 days
         upgradeApproved = false;
     }
 

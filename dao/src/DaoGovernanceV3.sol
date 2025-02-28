@@ -11,6 +11,7 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
     uint256 public votingDuration;
     bool public upgradeApproved; // 업그레이드 승인 여부
     bool public paused;
+    uint256 public constant VOTING_DURATION = 3 days;
 
     enum ProposalStatus {
         Pending,    
@@ -62,11 +63,11 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
     event Unstaked(address indexed user, uint256 amount);
     event EmergencyStopTriggered(address indexed admin);
 
-    function initializeV3(ERC20Upgradeable _token, uint256 _duration) public reinitializer(3) {
+    function initializeV3(ERC20Upgradeable _token) public reinitializer(3) {
         __Ownable_init(msg.sender);
         __UUPSUpgradeable_init();
         token = _token;
-        votingDuration = _duration; 
+        votingDuration = VOTING_DURATION; 
         paused = false;
         upgradeApproved = false;
     }
