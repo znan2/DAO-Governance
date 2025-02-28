@@ -20,7 +20,6 @@ contract ProxyTest is Test {
         way = new WAYToken();
         vm.prank(owner);
         daoV1 = new DaoGovernanceV1();
-        // _duration 인자 제거 – "initialize(address)"로 호출
         bytes memory initData = abi.encodeWithSignature("initialize(address)", ERC20Upgradeable(address(way)));
         vm.prank(owner);
         proxy = new DaoProxy(address(daoV1), initData);

@@ -13,6 +13,32 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
     bool public paused;
     uint256 public constant VOTING_DURATION = 3 days;
     mapping(address => uint256) public pendingWithdrawals;
+    bool public isStopped;
+
+    modifier onlyWhenNotStopped() {
+        require(!isStopped, "Contract is stopped");
+        _;
+    }
+
+    modifier onlyWhenStopped() {
+        require(isStopped, "Contract is not stopped");
+        _;
+    }
+
+    modifier onlyAuthorized() {
+        require(msg.sender == owner(), "Not authorized");
+        _;
+    }
+
+    function stopContract() external onlyAuthorized onlyWhenNotStopped {
+        isStopped = true;
+        emit EmergencyStopTriggered(msg.sender);
+    }
+    event ContractResumed(address indexed resumedBy);
+    function resumeContract() external onlyAuthorized onlyWhenStopped {
+        isStopped = false;
+        emit ContractResumed(msg.sender);
+    }
 
     enum ProposalStatus {
         Pending,    
@@ -78,30 +104,26 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
         require(upgradeApproved, "Upgrade not approved");
     }
 
-    function approveUpgrade() external onlyOwner {
+    function approveUpgrade() external onlyAuthorized() {
         upgradeApproved = true;
     }
 
-    function upgradeImplementation(address newImplementation, bytes memory data) external onlyOwner {
+    function upgradeImplementation(address newImplementation, bytes memory data) external onlyAuthorized() {
         require(upgradeApproved, "Upgrade not approved");
         upgradeToAndCall(newImplementation, data);
     }
 
-    modifier whenNotPaused() {
-        require(!paused, "Contract paused");
-        _;
-    }
 
-    function emergencyStop() external onlyOwner {
+    function emergencyStop() external onlyAuthorized() {
         paused = true;
         emit EmergencyStopTriggered(msg.sender);
     }
 
-    function resume() external onlyOwner {
+    function resume() external onlyAuthorized() {
         paused = false;
     }
     //CEI
-    function stake(uint256 amount) external whenNotPaused {
+    function stake(uint256 amount) external onlyWhenNotStopped {
         require(amount > 0, "Cannot stake zero");
         if (stakedBalances[msg.sender] == 0) {
             stakedTimestamp[msg.sender] = block.timestamp;
@@ -112,7 +134,7 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
         emit Staked(msg.sender, amount);
     }
     //CEI, Pull over Push
-    function unstake(uint256 amount) external whenNotPaused {
+    function unstake(uint256 amount) external onlyWhenNotStopped {
         require(amount > 0, "Cannot unstake zero");
         require(stakedBalances[msg.sender] >= amount, "Not enough staked");
         uint256 reward = 0;
@@ -132,7 +154,7 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
         emit Unstaked(msg.sender, amount);
     }
 
-    function withdraw() external whenNotPaused {
+    function withdraw() external onlyWhenNotStopped {
         uint256 amount = pendingWithdrawals[msg.sender];
         require(amount > 0, "No pending withdrawal");
         pendingWithdrawals[msg.sender] = 0;
@@ -141,8 +163,25 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
         emit Withdrawn(msg.sender, amount);
     }
 
+    //pendingWithdrawals 말고 스테이킹된 금액에서도 뺄 수 있음
+    function emergencyWithdraw() external onlyWhenStopped {
+        uint256 amount = stakedBalances[msg.sender];
+        amount += pendingWithdrawals[msg.sender];
+        require(amount > 0, "No staked funds");
+        
+        // 내부 상태 업데이트
+        stakedBalances[msg.sender] = 0;
+        stakedTimestamp[msg.sender] = 0;
+        
+        // 외부 상호작용: 토큰 전송
+        bool success = token.transfer(msg.sender, amount);
+        require(success, "Token transfer failed");
+        
+        emit Withdrawn(msg.sender, amount);
+    }
 
-    function createProposal(string memory _description, bool _submission) public onlyOwner returns (uint256) {
+
+    function createProposal(string memory _description, bool _submission) public onlyAuthorized() returns (uint256) {
         proposalCount++;
         uint256 newId = proposalCount;
 
@@ -165,7 +204,7 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
         return newId;
     }
 
-    function vote(uint256 _proposalId, uint8 _option) external whenNotPaused {
+    function vote(uint256 _proposalId, uint8 _option) external onlyWhenNotStopped {
         Proposal storage p = proposals[_proposalId];
 
         require(p.status == ProposalStatus.Submission, "Proposal not in submission");
@@ -192,7 +231,7 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
         }
     }
 
-    function finalize(uint256 _proposalId) external onlyOwner {
+    function finalize(uint256 _proposalId) external onlyAuthorized() {
         Proposal storage p = proposals[_proposalId];
         require(p.status == ProposalStatus.Submission, "Proposal not in submission");
         require(block.timestamp > p.endTime, "Voting period not ended");
@@ -211,7 +250,7 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
         emit ProposalFinalized(_proposalId, p.result);
     }
 
-    function extendVoting(uint256 _proposalId) external onlyOwner {
+    function extendVoting(uint256 _proposalId) external onlyAuthorized() {
         Proposal storage p = proposals[_proposalId];
         require(p.status == ProposalStatus.Completed, "Not completed yet");
         require(p.result == PollResult.Extended, "Proposal not extended");
@@ -231,7 +270,7 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
     }
 
     //멀티콜
-    function multicall(bytes[] calldata calls)external whenNotPaused returns (bytes[] memory results) {
+    function multicall(bytes[] calldata calls)external onlyWhenNotStopped returns (bytes[] memory results) {
         results = new bytes[](calls.length);
         for (uint256 i = 0; i < calls.length; i++) {
             (bool success, bytes memory retData) = address(this).delegatecall(calls[i]);
