@@ -43,6 +43,7 @@ contract DaoGovernanceWithStaking is UUPSUpgradeable, OwnableUpgradeable{
     mapping(uint256 => mapping(address => bool)) public hasVoted;
     mapping(address => uint256) public stakedBalances; // 스테이킹된 토큰 양
     uint256 public constant REWARD_PERCENT = 10; // 보상률
+    mapping(address => uint256) public stakedTimestamp; //스테이킹한 기간 추적용
 
 
     event ProposalCreated(
@@ -98,16 +99,15 @@ contract DaoGovernanceWithStaking is UUPSUpgradeable, OwnableUpgradeable{
         paused = false;
     }
 
-    //스테이킹 예상 보상금액
-    function estimateRewards(address user) external view returns (uint256) {
-        uint256 staked = stakedBalances[user];
-        return (staked * REWARD_PERCENT) / 100;
-    }
-
     function stake(uint256 amount) external whenNotPaused {
         require(amount > 0, "Cannot stake zero");
         bool success = token.transferFrom(msg.sender, address(this), amount);
         require(success, "Token transfer failed");
+
+        //스테이킹 처음 할 때
+        if (stakedBalances[msg.sender] == 0) {
+            stakedTimestamp[msg.sender] = block.timestamp;
+        }
 
         stakedBalances[msg.sender] += amount;
         emit Staked(msg.sender, amount);
@@ -117,8 +117,17 @@ contract DaoGovernanceWithStaking is UUPSUpgradeable, OwnableUpgradeable{
         require(amount > 0, "Cannot unstake zero");
         require(stakedBalances[msg.sender] >= amount, "Not enough staked");
 
+        uint256 reward = 0;
+        if (stakedTimestamp[msg.sender] > 0 && (block.timestamp - stakedTimestamp[msg.sender] >= 7 days)) {
+            reward = (amount * REWARD_PERCENT) / 100;
+        }
+
         stakedBalances[msg.sender] -= amount;
-        bool success = token.transfer(msg.sender, amount);
+        if (stakedBalances[msg.sender] == 0) {
+            stakedTimestamp[msg.sender] = 0;
+        }
+
+        bool success = token.transfer(msg.sender, amount + reward);
         require(success, "Token transfer failed");
 
         emit Unstaked(msg.sender, amount);
