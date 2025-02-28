@@ -165,12 +165,12 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
 
     //pendingWithdrawals 말고 스테이킹된 금액에서도 뺄 수 있음
     function emergencyWithdraw() external onlyWhenStopped {
-        uint256 amount = stakedBalances[msg.sender];
-        amount += pendingWithdrawals[msg.sender];
+        uint256 amount = stakedBalances[msg.sender] + pendingWithdrawals[msg.sender];
         require(amount > 0, "No staked funds");
         
         // 내부 상태 업데이트
         stakedBalances[msg.sender] = 0;
+        pendingWithdrawals[msg.sender] = 0;
         stakedTimestamp[msg.sender] = 0;
         
         // 외부 상호작용: 토큰 전송
