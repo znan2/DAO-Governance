@@ -85,7 +85,7 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
     event VoteCast(uint256 indexed proposalId, address indexed voter, string option);
     event ProposalFinalized(uint256 indexed proposalId, PollResult result);
     event VotingExtended(uint256 indexed proposalId, uint256 newEndTime);
-
+    event Withdrawn(address indexed user, uint256 amount);
     event Staked(address indexed user, uint256 amount);
     event Unstaked(address indexed user, uint256 amount);
     event EmergencyStopTriggered(address indexed admin);

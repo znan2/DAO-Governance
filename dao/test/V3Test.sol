@@ -7,7 +7,7 @@ import "../src/DaoGovernanceV3.sol";
 import "openzeppelin-contracts-upgradeable/contracts/token/ERC20/ERC20Upgradeable.sol";
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-contract StakingTest is Test {
+contract V3Test is Test {
     DaoGovernanceV3 dao;
     WAYToken wayToken;
 
@@ -53,7 +53,7 @@ contract StakingTest is Test {
         dao.unstake(50 * 1e18);
         uint256 stakedNow = dao.stakedBalances(alice);
         assertEq(stakedNow, 150 * 1e18);
-
+        dao.withdraw();
         // 350개 남아있어야 함
         uint256 aliceBalance = wayToken.balanceOf(alice);
         assertEq(aliceBalance, 350 * 1e18);
@@ -67,7 +67,7 @@ contract StakingTest is Test {
         dao.unstake(50 * 1e18);
         uint256 stakedNow = dao.stakedBalances(alice);
         assertEq(stakedNow, 150 * 1e18);
-
+        dao.withdraw();
         // 355개 남아있어야 함
         uint256 aliceBalance = wayToken.balanceOf(alice);
         assertEq(aliceBalance, 355 * 1e18);

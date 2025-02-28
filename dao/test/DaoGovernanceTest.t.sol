@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 import "../src/DaoGovernanceV1.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "../src/WAYToken.sol";
-contract DaoGovernanceTest is Test {
+contract ProposalVoteTest is Test {
     DaoGovernanceV1 dao;
     address owner = address(1);
     address alice = address(2);
