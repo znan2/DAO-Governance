@@ -8,6 +8,7 @@ import "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.s
 contract DaoGovernanceV1 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeable {
     ERC20Upgradeable public token;
     uint256 public constant VOTING_DURATION = 1 minutes;
+    uint256 public votingDuration;
     bool public upgradeApproved;
 
     enum ProposalStatus {
@@ -60,7 +61,7 @@ contract DaoGovernanceV1 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeabl
         __UUPSUpgradeable_init();
         __ERC20_init("WAYToken", "WAY");
         token = _token;
-        votingDuration = VOTING_DURATION;// 예: 3 days
+        votingDuration = VOTING_DURATION;
         upgradeApproved = false;
     }
 
@@ -92,7 +93,7 @@ contract DaoGovernanceV1 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeabl
         upgradeApproved = true;
     }
 
-    function _authorizeUpgrade(address newImplementation) internal override {
+    function _authorizeUpgrade(address newImplementation) internal override view{
         require(owner() == msg.sender, "Not owner");
         require(upgradeApproved, "Upgrade not approved by vote");
     }

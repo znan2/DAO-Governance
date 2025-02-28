@@ -17,7 +17,7 @@ contract DaoGovernanceTest is Test {
         vm.prank(owner);
         dao = new DaoGovernanceV1();
         vm.prank(owner);
-        dao.initialize(ERC20Upgradeable(address(way)),3 days);
+        dao.initialize(ERC20Upgradeable(address(way)));
         vm.prank(owner);
         way.transfer(alice, 1);
     }

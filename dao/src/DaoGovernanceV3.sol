@@ -12,6 +12,7 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
     bool public upgradeApproved; // 업그레이드 승인 여부
     bool public paused;
     uint256 public constant VOTING_DURATION = 3 days;
+    mapping(address => uint256) public pendingWithdrawals;
 
     enum ProposalStatus {
         Pending,    
@@ -99,25 +100,21 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
     function resume() external onlyOwner {
         paused = false;
     }
-
+    //CEI
     function stake(uint256 amount) external whenNotPaused {
         require(amount > 0, "Cannot stake zero");
-        bool success = token.transferFrom(msg.sender, address(this), amount);
-        require(success, "Token transfer failed");
-
-        //스테이킹 처음 할 때
         if (stakedBalances[msg.sender] == 0) {
             stakedTimestamp[msg.sender] = block.timestamp;
         }
-
         stakedBalances[msg.sender] += amount;
+        bool success = token.transferFrom(msg.sender, address(this), amount);
+        require(success, "Token transfer failed");
         emit Staked(msg.sender, amount);
     }
 
     function unstake(uint256 amount) external whenNotPaused {
         require(amount > 0, "Cannot unstake zero");
         require(stakedBalances[msg.sender] >= amount, "Not enough staked");
-
         uint256 reward = 0;
         if (stakedTimestamp[msg.sender] > 0 && (block.timestamp - stakedTimestamp[msg.sender] >= 7 days)) {
             reward = (amount * REWARD_PERCENT) / 100;
@@ -127,7 +124,8 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
         if (stakedBalances[msg.sender] == 0) {
             stakedTimestamp[msg.sender] = 0;
         }
-
+        
+        pendingWithdrawals[msg.sender] += (amount + reward);
         bool success = token.transfer(msg.sender, amount + reward);
         require(success, "Token transfer failed");
 
