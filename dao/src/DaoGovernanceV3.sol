@@ -111,7 +111,7 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
         require(success, "Token transfer failed");
         emit Staked(msg.sender, amount);
     }
-
+    //CEI, Pull over Push
     function unstake(uint256 amount) external whenNotPaused {
         require(amount > 0, "Cannot unstake zero");
         require(stakedBalances[msg.sender] >= amount, "Not enough staked");
@@ -124,13 +124,23 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
         if (stakedBalances[msg.sender] == 0) {
             stakedTimestamp[msg.sender] = 0;
         }
-        
+
         pendingWithdrawals[msg.sender] += (amount + reward);
-        bool success = token.transfer(msg.sender, amount + reward);
-        require(success, "Token transfer failed");
+        //bool success = token.transfer(msg.sender, amount + reward);
+        //require(success, "Token transfer failed");
 
         emit Unstaked(msg.sender, amount);
     }
+
+    function withdraw() external whenNotPaused {
+        uint256 amount = pendingWithdrawals[msg.sender];
+        require(amount > 0, "No pending withdrawal");
+        pendingWithdrawals[msg.sender] = 0;
+        bool success = token.transfer(msg.sender, amount);
+        require(success, "Token transfer failed");
+        emit Withdrawn(msg.sender, amount);
+    }
+
 
     function createProposal(string memory _description, bool _submission) public onlyOwner returns (uint256) {
         proposalCount++;
