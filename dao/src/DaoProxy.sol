@@ -1,11 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-/**
- * @title TransparentUpgradeableProxy
- * @dev EIP-1967에 따라 구현(implementation)과 관리(admin) 주소를 저장하는
- * 프록시 컨트랙트입니다. 관리자는 upgradeTo()를 통해 구현 주소를 변경할 수 있습니다.
- */
 contract DaoProxy {
     // EIP-1967
     bytes32 private constant IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;

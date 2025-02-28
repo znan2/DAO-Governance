@@ -9,26 +9,26 @@ import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable
 
 contract StakingTest is Test {
     DaoGovernanceV3 dao;
+    WAYToken wayToken;
+
     address owner = address(1);
     address alice = address(2);
     address bob   = address(3);
-    WAYToken wayToken;
 
     function setUp() public {
         vm.startPrank(owner);
         wayToken = new WAYToken();
         vm.stopPrank();
-        
+
         vm.startPrank(owner);
         dao = new DaoGovernanceV3();
         dao.initializeV3(ERC20Upgradeable(address(wayToken)), 3 days);
         vm.stopPrank();
-        
+
         vm.startPrank(owner);
-        // 토큰 500개
-        wayToken.transfer(alice, 500 * 10 ** wayToken.decimals());
+        wayToken.transfer(alice, 500 * 1e18);
         vm.stopPrank();
-        
+
         vm.startPrank(alice);
         wayToken.approve(address(dao), type(uint256).max);
         vm.stopPrank();
@@ -36,11 +36,51 @@ contract StakingTest is Test {
 
     function testStake() public {
         vm.prank(alice);
-        dao.stake(100);
+        dao.stake(100 * 1e18);
 
         uint256 stakedAlice = dao.stakedBalances(alice);
-        assertEq(stakedAlice, 100);
+        assertEq(stakedAlice, 100 * 1e18);
         uint256 daoBalance = wayToken.balanceOf(address(dao));
-        assertEq(daoBalance, 100);
+        assertEq(daoBalance, 100 * 1e18);
+    }
+
+    function testUnstakeWithoutReward() public {
+        vm.startPrank(alice);
+        dao.stake(200 * 1e18);
+        vm.warp(block.timestamp + 1 days);
+
+        // 50토큰만 unstake
+        dao.unstake(50 * 1e18);
+        uint256 stakedNow = dao.stakedBalances(alice);
+        assertEq(stakedNow, 150 * 1e18);
+
+        // 350개 남아있어야 함
+        uint256 aliceBalance = wayToken.balanceOf(alice);
+        assertEq(aliceBalance, 350 * 1e18);
+        vm.stopPrank();
+    }
+
+    function testUnstakeWithReward() public {
+        vm.startPrank(alice);
+
+        // 1. Stake 200 => remainder in Alice’s balance = 300
+        dao.stake(200 * 1e18);
+
+        // 2. Warp > 7 days => eligible for 10% reward
+        vm.warp(block.timestamp + 7 days + 1);
+
+        // 3. Unstake 50 => reward = 5
+        dao.unstake(50 * 1e18);
+
+        // staked => 200 - 50 = 150
+        uint256 stakedNow = dao.stakedBalances(alice);
+        assertEq(stakedNow, 150 * 1e18);
+
+        // reward = 5, so Alice gets 50 + 5 = 55 back
+        // Her balance was 300 before unstake => 300 + 55 = 355
+        uint256 aliceBalance = wayToken.balanceOf(alice);
+        assertEq(aliceBalance, 355 * 1e18);
+
+        vm.stopPrank();
     }
 }
