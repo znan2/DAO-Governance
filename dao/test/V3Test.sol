@@ -53,6 +53,10 @@ contract V3Test is Test {
         dao.unstake(50 * 1e18);
         uint256 stakedNow = dao.stakedBalances(alice);
         assertEq(stakedNow, 150 * 1e18);
+
+        uint256 pending = dao.pendingWithdrawals(alice);
+        assertEq(pending, 50 * 1e18, "Pending withdrawal should be 50 tokens");
+
         dao.withdraw();
         // 350개 남아있어야 함
         uint256 aliceBalance = wayToken.balanceOf(alice);
