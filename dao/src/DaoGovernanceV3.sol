@@ -6,7 +6,7 @@ import "openzeppelin-contracts-upgradeable/contracts/token/ERC20/ERC20Upgradeabl
 import "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
-contract DaoGovernanceWithStaking is UUPSUpgradeable, OwnableUpgradeable{
+contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
     ERC20Upgradeable public token;
     uint256 public votingDuration;
     bool public upgradeApproved; // 업그레이드 승인 여부
