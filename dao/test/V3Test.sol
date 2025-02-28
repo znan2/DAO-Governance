@@ -18,9 +18,6 @@ contract V3Test is Test {
     function setUp() public {
         vm.startPrank(owner);
         wayToken = new WAYToken();
-        vm.stopPrank();
-
-        vm.startPrank(owner);
         dao = new DaoGovernanceV3();
         dao.initializeV3(ERC20Upgradeable(address(wayToken)));
         vm.stopPrank();
