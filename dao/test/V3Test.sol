@@ -80,4 +80,41 @@ contract V3Test is Test {
 
         vm.stopPrank();
     }
+
+    function testEmergencyStopAndResume() public {
+        vm.prank(owner);
+        dao.stopContract();
+        // 중지 상태
+        vm.prank(alice);
+        vm.expectRevert("Contract is stopped");
+        dao.stake(50);
+
+        // resumeContract()테스트
+        vm.prank(owner);
+        dao.resumeContract();
+        vm.prank(alice);
+        dao.stake(50 * 1e18);
+        uint256 staked = dao.stakedBalances(alice);
+        assertEq(staked, 50 * 1e18, "Alice should stake 50 tokens after resume");
+    }
+
+    function testEmergencyWithdraw() public {
+        vm.startPrank(alice);
+        dao.stake(200 * 1e18);
+        dao.unstake(50 * 1e18);
+        // EmergencyWithdraw total = 200
+        vm.stopPrank();
+        // 중지
+        vm.prank(owner);
+        dao.stopContract();
+        vm.prank(alice);
+        dao.emergencyWithdraw();
+
+        uint256 remainingStake = dao.stakedBalances(alice);
+        uint256 remainingPending = dao.pendingWithdrawals(alice);
+        assertEq(remainingStake, 0, "Staked balance should be reset to 0");
+        assertEq(remainingPending, 0, "Pending withdrawals should be reset to 0");
+        uint256 aliceBalance = wayToken.balanceOf(alice);
+        assertEq(aliceBalance, 500 * 1e18, "Alice balance should be restored to 500 tokens");
+    }
 }
