@@ -34,7 +34,6 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
         isStopped = true;
         emit EmergencyStopTriggered(msg.sender);
     }
-    event ContractResumed(address indexed resumedBy);
     function resumeContract() external onlyAuthorized onlyWhenStopped {
         isStopped = false;
         emit ContractResumed(msg.sender);
@@ -73,23 +72,6 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
     uint256 public constant REWARD_PERCENT = 10; // 보상률
     mapping(address => uint256) public stakedTimestamp; //스테이킹한 기간 추적용
 
-
-    event ProposalCreated(
-        uint256 indexed id,
-        string description,
-        bool submission,
-        uint256 startTime,
-        uint256 endTime
-    );
-
-    event VoteCast(uint256 indexed proposalId, address indexed voter, string option);
-    event ProposalFinalized(uint256 indexed proposalId, PollResult result);
-    event VotingExtended(uint256 indexed proposalId, uint256 newEndTime);
-    event Withdrawn(address indexed user, uint256 amount);
-    event Staked(address indexed user, uint256 amount);
-    event Unstaked(address indexed user, uint256 amount);
-    event EmergencyStopTriggered(address indexed admin);
-
     function initializeV3(ERC20Upgradeable _token) public reinitializer(3) {
         __Ownable_init(msg.sender);
         __UUPSUpgradeable_init();
@@ -116,7 +98,6 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
 
     function emergencyStop() external onlyAuthorized() {
         paused = true;
-        emit EmergencyStopTriggered(msg.sender);
     }
 
     function resume() external onlyAuthorized() {
@@ -131,7 +112,6 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
         stakedBalances[msg.sender] += amount;
         bool success = token.transferFrom(msg.sender, address(this), amount);
         require(success, "Token transfer failed");
-        emit Staked(msg.sender, amount);
     }
     //CEI, Pull over Push
     function unstake(uint256 amount) external onlyWhenNotStopped {
@@ -148,10 +128,6 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
         }
 
         pendingWithdrawals[msg.sender] += (amount + reward);
-        //bool success = token.transfer(msg.sender, amount + reward);
-        //require(success, "Token transfer failed");
-
-        emit Unstaked(msg.sender, amount);
     }
 
     function withdraw() external onlyWhenNotStopped {
@@ -160,7 +136,6 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
         pendingWithdrawals[msg.sender] = 0;
         bool success = token.transfer(msg.sender, amount);
         require(success, "Token transfer failed");
-        emit Withdrawn(msg.sender, amount);
     }
 
     //pendingWithdrawals 말고 스테이킹된 금액에서도 뺄 수 있음
@@ -176,8 +151,6 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
         // 외부 상호작용: 토큰 전송
         bool success = token.transfer(msg.sender, amount);
         require(success, "Token transfer failed");
-        
-        emit Withdrawn(msg.sender, amount);
     }
 
 
@@ -200,7 +173,6 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
             // submission = false -> 투표 진행 X (Pending 상태 유지)
             p.status = ProposalStatus.Pending;
         }
-        emit ProposalCreated(newId, _description, _submission, p.startTime, p.endTime);
         return newId;
     }
 
@@ -221,13 +193,10 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
 
         if (_option == 0) {
             p.yesVotes += votingPower;
-            emit VoteCast(_proposalId, msg.sender, "yes");
         } else if (_option == 1) {
             p.noVotes += votingPower;
-            emit VoteCast(_proposalId, msg.sender, "no");
         } else {
             p.abstainVotes += votingPower;
-            emit VoteCast(_proposalId, msg.sender, "abstain");
         }
     }
 
@@ -243,11 +212,8 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
         } else {
             // 기권 최다 or 동점 => 투표 연장
             p.result = PollResult.Extended;
-            emit VotingExtended(_proposalId, p.endTime + votingDuration);
         }
-
         p.status = ProposalStatus.Completed;
-        emit ProposalFinalized(_proposalId, p.result);
     }
 
     function extendVoting(uint256 _proposalId) external onlyAuthorized() {

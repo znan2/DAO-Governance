@@ -43,18 +43,6 @@ contract DaoGovernanceV2 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeabl
     mapping(uint256 => Proposal) public proposals;
     mapping(uint256 => mapping(address => bool)) public hasVoted;
 
-    // 이벤트
-    event ProposalCreated(
-        uint256 indexed id,
-        string description,
-        bool submission,  
-        uint256 startTime,
-        uint256 endTime
-    );
-    event VoteCast(uint256 indexed proposalId, address indexed voter, string option);
-    event ProposalFinalized(uint256 indexed proposalId, PollResult result);
-    event VotingExtended(uint256 indexed proposalId, uint256 newEndTime);
-
     function initializeV2(ERC20Upgradeable _token) public reinitializer(2) {
         __Ownable_init(msg.sender);
         __UUPSUpgradeable_init();
@@ -83,13 +71,6 @@ contract DaoGovernanceV2 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeabl
             // submission = false -> 투표 진행 X (Pending 상태 유지)
             p.status = ProposalStatus.Pending;
         }
-        emit ProposalCreated(
-            newId,
-            _description,
-            _submission,
-            p.startTime,
-            p.endTime
-        );
         return newId;
     }
 
@@ -121,13 +102,10 @@ contract DaoGovernanceV2 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeabl
 
         if (_option == 0) {
             p.yesVotes += votingPower;
-            emit VoteCast(_proposalId, msg.sender, "yes");
         } else if (_option == 1) {
             p.noVotes += votingPower;
-            emit VoteCast(_proposalId, msg.sender, "no");
         } else {
             p.abstainVotes += votingPower;
-            emit VoteCast(_proposalId, msg.sender, "abstain");
         }
     }
 
@@ -147,11 +125,8 @@ contract DaoGovernanceV2 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeabl
         } else {
             // 기권이 제일 많거나 동표가 나왔을 때
             p.result = PollResult.Extended;
-            emit VotingExtended(_proposalId, p.endTime + votingDuration);
         }
-
         p.status = ProposalStatus.Completed;
-        emit ProposalFinalized(_proposalId, p.result);
     }
 
     function extendVoting(uint256 _proposalId) external onlyOwner {
