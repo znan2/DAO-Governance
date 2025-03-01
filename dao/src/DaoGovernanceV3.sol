@@ -32,11 +32,9 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
 
     function stopContract() external onlyAuthorized onlyWhenNotStopped {
         isStopped = true;
-        emit EmergencyStopTriggered(msg.sender);
     }
     function resumeContract() external onlyAuthorized onlyWhenStopped {
         isStopped = false;
-        emit ContractResumed(msg.sender);
     }
 
     enum ProposalStatus {
