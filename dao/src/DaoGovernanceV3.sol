@@ -180,7 +180,7 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
         require(p.status == ProposalStatus.Submission, "Proposal not in submission");
         require(block.timestamp >= p.startTime, "Voting not started");
         require(block.timestamp <= p.endTime, "Voting ended");
-        require(!hasVoted[_proposalId][msg.sender], "Already voted");
+        // ^_^
         require(_option <= 2, "Invalid option");
 
         // 스테이킹 수량 = 투표권
@@ -234,7 +234,7 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
     }
 
     //멀티콜
-    function multicall(bytes[] calldata calls)external onlyWhenNotStopped returns (bytes[] memory results) {
+    function multicall(bytes[] calldata calls) external onlyWhenNotStopped returns (bytes[] memory results) {
         results = new bytes[](calls.length);
         for (uint256 i = 0; i < calls.length; i++) {
             (bool success, bytes memory retData) = address(this).delegatecall(calls[i]);
@@ -259,5 +259,12 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
 
     function version() public pure returns (string memory) {
         return "V3";
+    }
+
+    function executeProposalCreationAndVote() external onlyAuthorized {
+        bytes[] memory calls = new bytes[](2);
+        calls[0] = abi.encodeWithSelector(this.createProposal.selector, "Multicall Proposal", true);
+        calls[1] = abi.encodeWithSelector(this.vote.selector, uint256(1), uint8(0));
+        this.multicall(calls);
     }
 }
