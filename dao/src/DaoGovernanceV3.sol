@@ -36,7 +36,7 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
     function resumeContract() external onlyAuthorized onlyWhenStopped {
         isStopped = false;
     }
-    ```
+  
     enum ProposalStatus {
         Pending,    
         Submission,
@@ -49,7 +49,7 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
         Rejected,  
         Extended   
     }
-    ```
+
 
     struct Proposal {
         uint256 id;
