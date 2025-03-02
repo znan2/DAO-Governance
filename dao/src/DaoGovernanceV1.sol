@@ -154,6 +154,6 @@ contract DaoGovernanceV1 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeabl
     }
 
     function version() public pure returns (string memory) {
-        return "V2";
+        return "V1";
     }
 }

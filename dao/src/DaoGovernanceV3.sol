@@ -252,4 +252,12 @@ contract DaoGovernanceV3 is UUPSUpgradeable, OwnableUpgradeable{
             results[i] = retData;
         }
     }
+
+    function getVotingDuration() public view returns (uint256) {
+        return votingDuration;
+    }
+
+    function version() public pure returns (string memory) {
+        return "V3";
+    }
 }
