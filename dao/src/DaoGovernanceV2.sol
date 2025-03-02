@@ -79,11 +79,10 @@ contract DaoGovernanceV2 is UUPSUpgradeable, OwnableUpgradeable, ERC20Upgradeabl
         upgradeApproved = true;
     }
 
-    function _authorizeUpgrade(address newImplementation) internal override view {
-        require(owner() == msg.sender, "Not owner");
+    function upgradeImplementation(address newImplementation, bytes memory data) external onlyOwner {
         require(upgradeApproved, "Upgrade not approved by vote");
+        upgradeToAndCall(newImplementation, data);
     }
-
 
     function vote(uint256 _proposalId, uint8 _option) external {
         Proposal storage p = proposals[_proposalId];
