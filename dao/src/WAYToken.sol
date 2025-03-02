@@ -7,7 +7,7 @@ import "openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract WAYToken is ERC20, Ownable {
     constructor() ERC20("WAY Token", "WAY") Ownable(msg.sender) {
-        _mint(msg.sender, 1000000 * 10 ** decimals());
+        _mint(msg.sender, 1000 ether);
     }
 
     function mint(address to, uint256 amount) external onlyOwner {
