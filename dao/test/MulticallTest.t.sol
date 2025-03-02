@@ -32,7 +32,7 @@ contract MulticallTest is Test {
         calls[0] = abi.encodeWithSignature("stake(uint256)", 50 * 1e18);
         calls[1] = abi.encodeWithSignature("stake(uint256)", 50 * 1e18);
         dao.multicall(calls);
-        
+
         uint256 staked = dao.stakedBalances(alice);
         assertEq(staked, 100 * 1e18, "Alice should have staked 100 tokens");
     }
